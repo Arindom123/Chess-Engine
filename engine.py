@@ -28,10 +28,8 @@ def findBestMove(board, model):
     bestMove = None
     for move in possibleMoves:
         board.push(move)
-        currentBoard = generateTensor(board)
-        currentBoardToList = currentBoard.unsqueeze(0)
         with torch.no_grad():
-            output = model(currentBoardToList)
+            output = model(boardToTensorList(board))
         currentEval = output.item()
         if currentTurnWhite and currentEval > bestEval:
             bestEval = currentEval
@@ -41,3 +39,8 @@ def findBestMove(board, model):
             bestMove = move
         board.pop()
     return bestMove
+
+def boardToTensorList(board):
+    boardToTensor = generateTensor(board)
+    tensorList = boardToTensor.unsqueeze(0)
+    return tensorList

@@ -4,7 +4,7 @@ import os
 from model import ChessNet
 from engine import findBestMove
 from train import trainEngine
-numGames = 100
+numGames = 1000
 listBoardStates = []
 model = ChessNet()
 if os.path.exists("internalWeights.pth"):
@@ -18,4 +18,5 @@ for _ in range(numGames):
     listBoardStates.append(board.copy())
     trainEngine(listBoardStates, model, optimizer)
     listBoardStates = []
+    print (board.result())
 torch.save(model.state_dict(), "internalWeights.pth")
