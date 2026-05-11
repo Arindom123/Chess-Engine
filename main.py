@@ -1,10 +1,11 @@
 import chess
 from model import ChessNet
 from engine import findBestMove
-
-board = chess.Board()
+from train import trainEngine
+listBoardStates = []
 model = ChessNet();
+board = chess.Board();
 while not board.is_game_over():
     board.push(findBestMove(board, model))
-print(board)
-print(board.result())
+    listBoardStates.append[board]
+trainEngine(listBoardStates, 1, model)
