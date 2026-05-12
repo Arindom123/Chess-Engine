@@ -1,5 +1,6 @@
 import torch
 import chess
+import random
 
 def generateTensor(board):
     tensor = torch.zeros(768);
@@ -20,12 +21,15 @@ def generateTensor(board):
 
 def findBestMove(board, model):
     currentTurnWhite = board.turn
-    possibleMoves = board.legal_moves
+    possibleMoves = list(board.legal_moves)
     if currentTurnWhite:
         bestEval = float('-inf')
     else:
         bestEval = float('inf')
     bestMove = None
+    percentRandom = 10
+    if random.randint(1,100) < percentRandom+1:
+        return random.choice(possibleMoves)
     for move in possibleMoves:
         board.push(move)
         with torch.no_grad():

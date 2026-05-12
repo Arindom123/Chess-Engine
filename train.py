@@ -1,4 +1,3 @@
-import torch
 from engine import generateTensor
 from engine import boardToTensorList
 
