@@ -24,17 +24,17 @@ class Game(threading.Thread):
     
     def run(self):
         gameState = self.current_state
-        board = chess.Board()
-        moveList = event['moves'].split()
-        for moves in moveList:
-            board.push_uci(moves)
+        initialBoard = chess.Board()
+        initialList = gameState['state']['moves'].split()
+        if gameState['white']['id'] == 'chessbotap' and len(initialList) == 0:
+            client.bots.make_move(self.game_id, findBestMove(initialBoard,model).uci())
         for event in self.stream:
-            if board.turn and gameState['white']['id'] == 'chessbotap':
-                if not board.is_game_over():
-                    client.bots.make_move(self.game_id, findBestMove(board,model).uci())
-            if event['type'] == 'gameState':
-                if not board.is_game_over():
-                    if not board.turn and gameState['black']['id'] == 'chessbotap' or 
+                board = chess.Board()
+                if event['type'] == 'gameState' and (not board.is_game_over()):
+                    moveList = event['moves'].split()
+                    for move in moveList:
+                        board.push_uci(move)
+                    if ((not board.turn and gameState['black']['id'] == 'chessbotap') or (board.turn and gameState['white']['id'] == 'chessbotap')) and (not board.is_game_over()):
                         client.bots.make_move(self.game_id, findBestMove(board,model).uci())
 
 for event in client.bots.stream_incoming_events():
