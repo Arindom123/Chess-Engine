@@ -1,6 +1,8 @@
 import torch
 import chess
 import random
+from model import ChessNet
+import os
 
 def generateTensor(board):
     tensor = torch.zeros(768);
@@ -48,3 +50,9 @@ def boardToTensorList(board):
     boardToTensor = generateTensor(board)
     tensorList = boardToTensor.unsqueeze(0)
     return tensorList
+
+def instantiateModel():
+    model = ChessNet()
+    if os.path.exists("internalWeights.pth"):
+        model.load_state_dict(torch.load("internalWeights.pth", weights_only = True))
+    return model

@@ -1,16 +1,13 @@
 import chess
 import torch
-import os
-from model import ChessNet
-from engine import findBestMove
+from engine import findBestMove 
+from engine import instantiateModel
 from train import trainEngine
 numSets = 20
 autoSave = 50
 #total games = numSets*autoSave
 listBoardStates = []
-model = ChessNet()
-if os.path.exists("internalWeights.pth"):
-    model.load_state_dict(torch.load("internalWeights.pth", weights_only = True))
+model = instantiateModel()
 optimizer = torch.optim.Adam(model.parameters(),lr=.001)
 board = chess.Board()
 # while not board.is_game_over():
