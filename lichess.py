@@ -18,6 +18,12 @@ with open('./lichess.token') as f:
 session = berserk.TokenSession(token)
 client = berserk.Client(session)
 
+def trainEngineLoop(boardState, model, optimizer):
+    while True:
+            trainEngine(boardState.get(), model, optimizer)
+            torch.save(model.state_dict(), "internalWeights.pth")
+backgroundTraining = threading.Thread(target = trainEngineLoop, args = (boardState, model, optimizer))
+
 class Game(threading.Thread):
     def __init__(self, client, game_id, queue, **kwargs):
         super().__init__(**kwargs)
@@ -28,7 +34,7 @@ class Game(threading.Thread):
         self.stream = client.bots.stream_game_state(game_id)
         self.current_state = next(self.stream)
         self.botWhite = self.current_state['white'].get('id') == 'chessbotap'
-    
+
     def run(self):
         board = chess.Board()
         moveList = self.current_state['state']['moves'].split()
@@ -57,6 +63,7 @@ class Game(threading.Thread):
                 if botTurn:
                     self.client.bots.make_move(self.game_id, findBestMove(board,model).uci())
                     self.listBoardStates.append(board.copy())
+backgroundTraining.start()
 for event in client.bots.stream_incoming_events():
     if event['type'] == 'challenge':
         client.bots.accept_challenge(event['challenge']['id'])
@@ -64,10 +71,3 @@ for event in client.bots.stream_incoming_events():
         listBoardStates = []
         game = Game(client, event['game']['id'], boardState)
         game.start()
-backgroundTraining = threading.Thread(target = trainEngine, args = (boardState, model, optimizer))
-while True:
-    if not boardState.empty():
-        backgroundTraining.start()
-    def run():
-        trainEngine(boardState.get(), model, optimizer)
-        torch.save(model.state_dict(), "internalWeights.pth")
