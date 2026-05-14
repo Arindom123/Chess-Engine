@@ -8,6 +8,7 @@ from engine import findBestMove
 from engine import instantiateModel
 from train import trainEngine
 
+allBoardStates = []
 boardState = queue.Queue()
 model = instantiateModel()
 optimizer = torch.optim.Adam(model.parameters(),lr=.001)
@@ -20,8 +21,8 @@ client = berserk.Client(session)
 
 def trainEngineLoop(boardState, model, optimizer):
     while True:
-            trainEngine(boardState.get(), model, optimizer)
-            torch.save(model.state_dict(), "internalWeights.pth")
+        trainEngine(boardState.get(), model, optimizer)
+        torch.save(model.state_dict(), "internalWeights.pth")
 backgroundTraining = threading.Thread(target = trainEngineLoop, args = (boardState, model, optimizer))
 
 class Game(threading.Thread):
@@ -56,8 +57,10 @@ class Game(threading.Thread):
                     board.push_uci(move)
                 self.listBoardStates.append(board.copy())
                 if board.is_game_over():
-                    self.queue.put(self.listBoardStates)
-                    break
+                    allBoardStates.append(self.listBoardStates)
+                    if len(allBoardStates) > 10:
+                        self.queue.put(allBoardStates)
+                        break
                 botTurn = (board.turn == chess.WHITE and self.botWhite) or \
                 (board.turn == chess.BLACK and not self.botWhite)
                 if botTurn:
@@ -71,3 +74,4 @@ for event in client.bots.stream_incoming_events():
         listBoardStates = []
         game = Game(client, event['game']['id'], boardState)
         game.start()
+for event in client.bots.
