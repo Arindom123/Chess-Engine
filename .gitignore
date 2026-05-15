@@ -3,3 +3,4 @@ virtual-environment/
 __pycache__/
 .vscode/
 lichess.token
+internalWeights.pth

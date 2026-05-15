@@ -7,6 +7,7 @@ from engine import findBestMove
 from engine import instantiateModel
 from train import trainEngine
 
+lockOptimizer = threading.Lock()
 allBoardStates = []
 boardState = queue.Queue()
 model = instantiateModel()
@@ -20,8 +21,10 @@ client = berserk.Client(session)
 
 def trainEngineLoop(boardState, model, optimizer):
     while True:
-        trainEngine(boardState.get(), model, optimizer)
+        lockOptimizer.acquire()
+        trainEngine([boardState.get()], model, optimizer)
         torch.save(model.state_dict(), "internalWeights.pth")
+        lockOptimizer.release()
 backgroundTraining = threading.Thread(target = trainEngineLoop, args = (boardState, model, optimizer), daemon=True)
 
 class Game(threading.Thread):
@@ -42,7 +45,6 @@ class Game(threading.Thread):
             for move in moveList:
                 board.push_uci(move)
                 self.listBoardStates.append(board.copy())
-
         botTurn = (board.turn == chess.WHITE and self.botWhite) or \
         (board.turn == chess.BLACK and not self.botWhite)
         if (botTurn):
@@ -57,11 +59,9 @@ class Game(threading.Thread):
                     board.push_uci(move)
                 self.listBoardStates.append(board.copy())
                 if board.is_game_over():
-                    allBoardStates.append(list(self.listBoardStates))
-                    if len(allBoardStates) >= 10:
-                        tempList = list(allBoardStates)
-                        self.queue.put(tempList)
-                        allBoardStates.clear()
+                    tempList = self.listBoardStates.copy()
+                    self.queue.put(tempList)
+                    self.listBoardStates.clear()
                     break
                 botTurn = (board.turn == chess.WHITE and self.botWhite) or \
                 (board.turn == chess.BLACK and not self.botWhite)
@@ -73,9 +73,15 @@ class Game(threading.Thread):
 
 backgroundTraining.start()
 
-for event in client.bots.stream_incoming_events():
-    if event['type'] == 'challenge':
-        client.bots.accept_challenge(event['challenge']['id'])
-    if event['type'] == 'gameStart':
-        game = Game(client, event['game']['id'], boardState, daemon=True)
-        game.start()
+try:
+    for event in client.bots.stream_incoming_events():
+        try:
+            if event['type'] == 'challenge':
+                client.bots.accept_challenge(event['challenge']['id'])
+        except KeyError:
+            pass
+        if event['type'] == 'gameStart':
+            game = Game(client, event['game']['id'], boardState, daemon=True)
+            game.start()
+except KeyboardInterrupt:
+    print("stopped")
