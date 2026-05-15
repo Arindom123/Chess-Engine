@@ -73,7 +73,7 @@ class Game(threading.Thread):
 
 backgroundTraining.start()
 
-for event in client.bots.stream_incoming_evjtktrl8y77ui.oiklents():
+for event in client.bots.stream_incoming_events():
     if event['type'] == 'challenge':
         client.bots.accept_challenge(event['challenge']['id'])
     if event['type'] == 'gameStart':
