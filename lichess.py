@@ -2,7 +2,6 @@ import berserk
 import threading
 import torch
 import chess
-import os
 import queue
 from engine import findBestMove
 from engine import instantiateModel
@@ -23,7 +22,7 @@ def trainEngineLoop(boardState, model, optimizer):
     while True:
         trainEngine(boardState.get(), model, optimizer)
         torch.save(model.state_dict(), "internalWeights.pth")
-backgroundTraining = threading.Thread(target = trainEngineLoop, args = (boardState, model, optimizer))
+backgroundTraining = threading.Thread(target = trainEngineLoop, args = (boardState, model, optimizer), daemon=True)
 
 class Game(threading.Thread):
     def __init__(self, client, game_id, queue, **kwargs):
@@ -32,23 +31,24 @@ class Game(threading.Thread):
         self.game_id = game_id
         self.client = client
         self.queue = queue
-        self.stream = client.bots.stream_game_state(game_id)
-        self.current_state = next(self.stream)
-        self.botWhite = self.current_state['white'].get('id') == 'chessbotap'
 
     def run(self):
+        self.stream = self.client.bots.stream_game_state(self.game_id)
+        self.current_state = next(self.stream)
+        self.botWhite = self.current_state['white'].get('id') == 'chessbotap'
         board = chess.Board()
         moveList = self.current_state['state']['moves'].split()
-        if len(moveList) != 0:
-            if moveList[0] != '':
-                for move in moveList:
-                    board.push_uci(move)
-                    self.listBoardStates.append(board.copy())
+        if moveList:
+            for move in moveList:
+                board.push_uci(move)
+                self.listBoardStates.append(board.copy())
+
         botTurn = (board.turn == chess.WHITE and self.botWhite) or \
         (board.turn == chess.BLACK and not self.botWhite)
         if (botTurn):
-            botMove = findBestMove(board, model).uci()
-            self.client.bots.make_move(self.game_id, botMove)
+            botMove = findBestMove(board, model)
+            if botMove:
+                self.client.bots.make_move(self.game_id, botMove.uci())
         for event in self.stream:
             if event['type'] == 'gameState':
                 board = chess.Board()
@@ -57,21 +57,25 @@ class Game(threading.Thread):
                     board.push_uci(move)
                 self.listBoardStates.append(board.copy())
                 if board.is_game_over():
-                    allBoardStates.append(self.listBoardStates)
-                    if len(allBoardStates) > 10:
-                        self.queue.put(allBoardStates)
-                        break
+                    allBoardStates.append(list(self.listBoardStates))
+                    if len(allBoardStates) >= 10:
+                        tempList = list(allBoardStates)
+                        self.queue.put(tempList)
+                        allBoardStates.clear()
+                    break
                 botTurn = (board.turn == chess.WHITE and self.botWhite) or \
                 (board.turn == chess.BLACK and not self.botWhite)
                 if botTurn:
-                    self.client.bots.make_move(self.game_id, findBestMove(board,model).uci())
-                    self.listBoardStates.append(board.copy())
+                    bestMove = findBestMove(board,model)
+                    if bestMove:
+                        self.client.bots.make_move(self.game_id, bestMove.uci())
+                        self.listBoardStates.append(board.copy())
+
 backgroundTraining.start()
-for event in client.bots.stream_incoming_events():
+
+for event in client.bots.stream_incoming_evjtktrl8y77ui.oiklents():
     if event['type'] == 'challenge':
         client.bots.accept_challenge(event['challenge']['id'])
     if event['type'] == 'gameStart':
-        listBoardStates = []
-        game = Game(client, event['game']['id'], boardState)
+        game = Game(client, event['game']['id'], boardState, daemon=True)
         game.start()
-for event in client.bots.
