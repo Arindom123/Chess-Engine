@@ -4,6 +4,8 @@ import random
 from model import ChessNet
 import os
 
+WEIGHTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "internalWeights.pth")
+
 def generateTensor(board):
     tensor = torch.zeros(768);
     indexPieces = {
@@ -53,6 +55,6 @@ def boardToTensorList(board):
 
 def instantiateModel():
     model = ChessNet()
-    if os.path.exists("internalWeights.pth"):
-        model.load_state_dict(torch.load("internalWeights.pth", weights_only = True))
+    if os.path.exists(WEIGHTS_PATH):
+        model.load_state_dict(torch.load(WEIGHTS_PATH, weights_only = True))
     return model

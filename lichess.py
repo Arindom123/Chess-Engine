@@ -3,8 +3,7 @@ import threading
 import torch
 import chess
 import queue
-from engine import findBestMove
-from engine import instantiateModel
+from engine import findBestMove, instantiateModel, WEIGHTS_PATH
 from train import trainEngine
 
 lockOptimizer = threading.Lock()
@@ -23,7 +22,7 @@ def trainEngineLoop(boardState, model, optimizer):
     while True:
         lockOptimizer.acquire()
         trainEngine([boardState.get()], model, optimizer)
-        torch.save(model.state_dict(), "internalWeights.pth")
+        torch.save(model.state_dict(), WEIGHTS_PATH)
         lockOptimizer.release()
 backgroundTraining = threading.Thread(target = trainEngineLoop, args = (boardState, model, optimizer), daemon=True)
 
