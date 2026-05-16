@@ -6,8 +6,7 @@ import queue
 from engine import findBestMove, instantiateModel, WEIGHTS_PATH
 from train import trainEngine
 
-lockOptimizer = threading.Lock()
-allBoardStates = []
+lockEval = threading.Lock()
 boardState = queue.Queue()
 model = instantiateModel()
 optimizer = torch.optim.Adam(model.parameters(),lr=.001)
@@ -20,10 +19,11 @@ client = berserk.Client(session)
 
 def trainEngineLoop(boardState, model, optimizer):
     while True:
-        lockOptimizer.acquire()
-        trainEngine([boardState.get()], model, optimizer)
-        torch.save(model.state_dict(), WEIGHTS_PATH)
-        lockOptimizer.release()
+        state = boardState.get()
+        with lockEval:
+            trainEngine(state, model, optimizer)
+            torch.save(model.state_dict(), WEIGHTS_PATH)
+
 backgroundTraining = threading.Thread(target = trainEngineLoop, args = (boardState, model, optimizer), daemon=True)
 
 class Game(threading.Thread):
@@ -47,28 +47,31 @@ class Game(threading.Thread):
         botTurn = (board.turn == chess.WHITE and self.botWhite) or \
         (board.turn == chess.BLACK and not self.botWhite)
         if (botTurn):
-            botMove = findBestMove(board, model)
+            with lockEval:
+                botMove = findBestMove(board, model)
             if botMove:
                 self.client.bots.make_move(self.game_id, botMove.uci())
         for event in self.stream:
+            self.listBoardStates = []
             if event['type'] == 'gameState':
                 board = chess.Board()
                 moveList = event['moves'].split()
                 for move in moveList:
                     board.push_uci(move)
-                self.listBoardStates.append(board.copy())
+                    self.listBoardStates.append(board.copy())
                 if board.is_game_over():
                     tempList = self.listBoardStates.copy()
                     self.queue.put(tempList)
+                    print(self.listBoardStates)
                     self.listBoardStates.clear()
                     break
                 botTurn = (board.turn == chess.WHITE and self.botWhite) or \
                 (board.turn == chess.BLACK and not self.botWhite)
                 if botTurn:
-                    bestMove = findBestMove(board,model)
+                    with lockEval:
+                        bestMove = findBestMove(board,model)
                     if bestMove:
                         self.client.bots.make_move(self.game_id, bestMove.uci())
-                        self.listBoardStates.append(board.copy())
 
 backgroundTraining.start()
 

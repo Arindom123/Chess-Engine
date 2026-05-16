@@ -24,33 +24,39 @@ def generateTensor(board):
     return tensor
 
 def findBestMove(board, model):
+    bestMove = None
+    percentRandom = 10
     currentTurnWhite = board.turn
     possibleMoves = list(board.legal_moves)
+    possibleTensorPositions = []
     if currentTurnWhite:
         bestEval = float('-inf')
     else:
         bestEval = float('inf')
-    bestMove = None
-    percentRandom = 10
-    if random.randint(1,100) < percentRandom+1:
+    if random.randint(0,99) < percentRandom:
         return random.choice(possibleMoves)
     for move in possibleMoves:
         board.push(move)
-        with torch.no_grad():
-            output = model(boardToTensorList(board))
-        currentEval = output.item()
+        possibleTensorPositions.append(generateTensor(board))
+        board.pop()
+    stackedPositions = torch.stack(possibleTensorPositions)
+    with torch.no_grad():
+        output = model(stackedPositions)
+    evalsAndMoves = zip(output, possibleMoves)
+    for eval, move in evalsAndMoves:
+        currentEval = eval.item()
         if currentTurnWhite and currentEval > bestEval:
             bestEval = currentEval
             bestMove = move
         elif not currentTurnWhite and currentEval < bestEval:
             bestEval = currentEval
             bestMove = move
-        board.pop()
     return bestMove
 
-def boardToTensorList(board):
-    boardToTensor = generateTensor(board)
-    tensorList = boardToTensor.unsqueeze(0)
+def boardToTensorList(boardStates):
+    tensorList = []
+    for board in boardStates:
+        tensorList.append(generateTensor(board))
     return tensorList
 
 def instantiateModel():
