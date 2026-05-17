@@ -15,13 +15,8 @@ print("engine instantiated")
 app = Flask(__name__)
 @app.route('/')
 def home():
-    global botRunning
-    if not botRunning:
-        print("restarting")
-        threading.Thread(target=startLichessBot, daemon=True).start()
     return "Chessbot is alive!"
 def run_web_server():
-    import os
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
@@ -72,15 +67,15 @@ class Game(threading.Thread):
                 self.listBoardStates.append(board.copy())
         botTurn = (board.turn == chess.WHITE and self.botWhite) or \
         (board.turn == chess.BLACK and not self.botWhite)
-        if (botTurn):
+        if botTurn:
             with lockEval:
                 botMove = findBestMove(board, model)
             if botMove:
                 self.client.bots.make_move(self.game_id, botMove.uci())
         for event in self.stream:
-            self.listBoardStates = []
             if event['type'] == 'gameState':
                 board = chess.Board()
+                self.listBoardStates = []
                 moveList = event['moves'].split()
                 for move in moveList:
                     board.push_uci(move)
@@ -111,11 +106,11 @@ def startLichessBot():
             if event['type'] == 'gameStart':
                 game = Game(client, event['game']['id'], boardState, daemon=True)
                 game.start()
-    except KeyboardInterrupt:
-        print("stopped")
+    except Exception as e:
+        print("lichess stream error")
     finally:
         botRunning = False
 
 backgroundTraining.start()
 threading.Thread(target=startLichessBot, daemon=True).start()
-threading.Thread(target=run_web_server, daemon=True).start()
+run_web_server()
