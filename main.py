@@ -2,6 +2,8 @@ import chess
 import torch
 from engine import findBestMove, instantiateModel, WEIGHTS_PATH
 from train import trainEngine
+from huggingface_hub import HfApi
+
 numSets = 2
 autoSave = 100
 #total games = numSets*autoSave
@@ -20,7 +22,15 @@ try:
             trainEngine(listBoardStates, model, optimizer)
             listBoardStates = []
             print (f"Set {setIndex+1} Game {gameIndex+1} : " + board.result())
-        torch.save(model.state_dict(), WEIGHTS_PATH)
+        torch.save(model.state_dict(), "pytorch_model.bin")
+        api = HfApi()
+        api.upload_file(
+            path_or_fileobj="pytorch_model.bin",
+            path_in_repo="pytorch_model.bin",
+            repo_id="ArindomP/chessbot",
+            repo_type="model",
+            commit_message=f"Updated weights after {numSets*autoSave} self-played games"
+        )
         print (f"Save {setIndex+1} of {numSets}")
 except KeyboardInterrupt:
     print("\ngame interrupted, saving...")

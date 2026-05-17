@@ -3,8 +3,10 @@ import threading
 import torch
 import chess
 import queue
+from huggingface_hub import HfApi
 from engine import findBestMove, instantiateModel, WEIGHTS_PATH
 from train import trainEngine
+print("engine instantiated")
 
 lockEval = threading.Lock()
 boardState = queue.Queue()
@@ -22,7 +24,15 @@ def trainEngineLoop(boardState, model, optimizer):
         state = boardState.get()
         with lockEval:
             trainEngine(state, model, optimizer)
-            torch.save(model.state_dict(), WEIGHTS_PATH)
+            torch.save(model.state_dict(), "pytorch_model.bin")
+            api = HfApi()
+            api.upload_file(
+            path_or_fileobj="pytorch_model.bin",
+            path_in_repo="pytorch_model.bin",
+            repo_id="ArindomP/chessbot",
+            repo_type="model",
+            commit_message=f"Updated weights after a lichess games"
+            )
 
 backgroundTraining = threading.Thread(target = trainEngineLoop, args = (boardState, model, optimizer), daemon=True)
 
@@ -62,7 +72,6 @@ class Game(threading.Thread):
                 if board.is_game_over():
                     tempList = self.listBoardStates.copy()
                     self.queue.put(tempList)
-                    print(self.listBoardStates)
                     self.listBoardStates.clear()
                     break
                 botTurn = (board.turn == chess.WHITE and self.botWhite) or \

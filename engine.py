@@ -6,16 +6,17 @@ import os
 
 WEIGHTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "internalWeights.pth")
 
-def generateTensor(board):
-    tensor = torch.zeros(768);
-    indexPieces = {
+indexPieces = {
     chess.PAWN: 0,
     chess.KNIGHT: 1,
     chess.BISHOP: 2,
     chess.ROOK: 3,
     chess.QUEEN: 4,
     chess.KING: 5
-    }
+}
+
+def generateTensor(board):
+    tensor = torch.zeros(768)
     for square, piece in board.piece_map().items():
         index = indexPieces[piece.piece_type]
         color_offset = 0 if piece.color == chess.WHITE else 6
@@ -60,7 +61,5 @@ def boardToTensorList(boardStates):
     return tensorList
 
 def instantiateModel():
-    model = ChessNet()
-    if os.path.exists(WEIGHTS_PATH):
-        model.load_state_dict(torch.load(WEIGHTS_PATH, weights_only = True))
+    model = ChessNet.from_pretrained("ArindomP/chessbot")
     return model
