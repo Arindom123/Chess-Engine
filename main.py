@@ -4,7 +4,7 @@ from engine import findBestMove, instantiateModel, WEIGHTS_PATH
 from train import trainEngine
 from huggingface_hub import HfApi
 
-numSets = 2
+numSets = 200
 autoSave = 100
 #total games = numSets*autoSave
 listBoardStates = []

@@ -13,6 +13,10 @@ print("engine instantiated")
 app = Flask(__name__)
 @app.route('/')
 def home():
+    global botRunning
+    if not botRunning:
+        print("restarting")
+        threading.Thread(target=startLichessBot, daemon=True).start()
     return "Chessbot is alive!"
 def run_web_server():
     import os
@@ -93,17 +97,23 @@ class Game(threading.Thread):
                     if bestMove:
                         self.client.bots.make_move(self.game_id, bestMove.uci())
 
-backgroundTraining.start()
+def startLichessBot():
+    global botRunning
+    botRunning = True
+    try:
+        for event in client.bots.stream_incoming_events():
+            try:
+                if event['type'] == 'challenge':
+                    client.bots.accept_challenge(event['challenge']['id'])
+            except KeyError:
+                pass
+            if event['type'] == 'gameStart':
+                game = Game(client, event['game']['id'], boardState, daemon=True)
+                game.start()
+    except KeyboardInterrupt:
+        print("stopped")
+    finally:
+        botRunning = False
 
-try:
-    for event in client.bots.stream_incoming_events():
-        try:
-            if event['type'] == 'challenge':
-                client.bots.accept_challenge(event['challenge']['id'])
-        except KeyError:
-            pass
-        if event['type'] == 'gameStart':
-            game = Game(client, event['game']['id'], boardState, daemon=True)
-            game.start()
-except KeyboardInterrupt:
-    print("stopped")
+backgroundTraining.start()
+threading.Thread(target=startLichessBot, daemon=True).start()
