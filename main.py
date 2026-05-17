@@ -29,7 +29,7 @@ try:
             path_in_repo="pytorch_model.bin",
             repo_id="ArindomP/chessbot",
             repo_type="model",
-            commit_message=f"Updated weights after {numSets*autoSave} self-played games"
+            commit_message=f"Updated weights after {autoSave} self-played games"
         )
         print (f"Save {setIndex+1} of {numSets}")
 except KeyboardInterrupt:
