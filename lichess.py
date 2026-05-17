@@ -4,10 +4,21 @@ import torch
 import chess
 import queue
 import os
+from flask import Flask
 from huggingface_hub import HfApi
 from engine import findBestMove, instantiateModel, WEIGHTS_PATH
 from train import trainEngine
 print("engine instantiated")
+
+app = Flask(__name__)
+@app.route('/')
+def home():
+    return "Chessbot is alive!"
+def run_web_server():
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+threading.Thread(target=run_web_server, daemon=True).start()
 
 lockEval = threading.Lock()
 boardState = queue.Queue()
