@@ -3,6 +3,7 @@ import threading
 import torch
 import chess
 import queue
+import os
 from huggingface_hub import HfApi
 from engine import findBestMove, instantiateModel, WEIGHTS_PATH
 from train import trainEngine
@@ -13,8 +14,7 @@ boardState = queue.Queue()
 model = instantiateModel()
 optimizer = torch.optim.Adam(model.parameters(),lr=.001)
 
-with open('./lichess.token') as f:
-    token = f.read()
+token = os.environ.get("LICHESS_TOKEN")
 
 session = berserk.TokenSession(token)
 client = berserk.Client(session)
