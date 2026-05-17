@@ -8,6 +8,8 @@ from flask import Flask
 from huggingface_hub import HfApi
 from engine import findBestMove, instantiateModel, WEIGHTS_PATH
 from train import trainEngine
+
+botRunning = False
 print("engine instantiated")
 
 app = Flask(__name__)
@@ -42,11 +44,11 @@ def trainEngineLoop(boardState, model, optimizer):
             torch.save(model.state_dict(), "pytorch_model.bin")
             api = HfApi()
             api.upload_file(
-            path_or_fileobj="pytorch_model.bin",
-            path_in_repo="pytorch_model.bin",
-            repo_id="ArindomP/chessbot",
-            repo_type="model",
-            commit_message=f"Updated weights after a lichess games"
+                path_or_fileobj="pytorch_model.bin",
+                path_in_repo="pytorch_model.bin",
+                repo_id="ArindomP/chessbot",
+                repo_type="model",
+                commit_message=f"Updated weights after a lichess games"
             )
 
 backgroundTraining = threading.Thread(target = trainEngineLoop, args = (boardState, model, optimizer), daemon=True)
